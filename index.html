@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ayman Elmasry · AEL Orchestrator — AI Model Orchestration Workbench</title>
+<meta name="description" content="AEL Digital Studio — multi-provider AI orchestration workbench with type-safe prompt contracts, smart routing, and real-time cost tracking.">
+<meta name="author" content="Ayman Elmasry">
+<meta name="keywords" content="ai orchestration, llm router, openai, anthropic, gemini, groq, prompt engineering, ael digital studio">
+<meta property="og:title" content="AEL Orchestrator">
+<meta property="og:description" content="Multi-provider AI orchestration with type-safe contracts and smart routing.">
+<meta property="og:type" content="website">
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="src/ui/styles.css">
+</head>
+<body>
+<div class="bg-grid"></div>
+
+<header class="topbar">
+  <div class="brand" id="brandBtn" title="About Ayman Elmasry">
+    <div class="logo" aria-label="AEL Digital Studio">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 226.77 226.77">
+        <path d="m97.19,48.59v16.2h-32.4v-16.2c0-8.94-7.25-16.2-16.2-16.2s-16.2,7.25-16.2,16.2v16.2H0v-16.2c0-5.68.98-11.13,2.76-16.2C9.44,13.52,27.44,0,48.59,0s39.16,13.52,45.83,32.4c1.79,5.07,2.76,10.52,2.76,16.2Z" fill="#ffffff"/>
+        <rect y="97.19" width="32.4" height="32.4" fill="#0074FF"/>
+        <rect x="64.79" y="97.19" width="32.4" height="32.4" fill="#0074FF"/>
+        <rect x="64.79" y="129.58" width="32.4" height="32.4" fill="#0074FF"/>
+        <rect y="129.58" width="32.4" height="32.4" fill="#0074FF"/>
+        <rect x="129.58" y="97.19" width="32.4" height="32.4" fill="#0074FF"/>
+        <rect x="161.98" y="129.58" width="32.4" height="32.4" fill="#0074FF"/>
+        <rect x="194.38" y="129.58" width="32.4" height="32.4" fill="#0074FF"/>
+        <rect x="129.58" y="129.58" width="32.4" height="32.4" fill="#0074FF"/>
+        <rect x="129.58" width="32.4" height="32.4" fill="#0074FF"/>
+        <rect x="161.98" width="32.4" height="32.4" fill="#0074FF"/>
+        <rect x="194.38" width="32.4" height="32.4" fill="#0074FF"/>
+        <rect x="129.58" y="32.4" width="32.4" height="32.4" fill="#0074FF"/>
+        <rect y="194.38" width="32.4" height="32.4" fill="#0074FF"/>
+        <rect x="32.4" y="194.38" width="32.4" height="32.4" fill="#0074FF"/>
+        <rect x="64.79" y="194.38" width="32.4" height="32.4" fill="#0074FF"/>
+        <rect x="97.19" y="194.38" width="32.4" height="32.4" fill="#0074FF"/>
+        <rect x="129.58" y="194.38" width="32.4" height="32.4" fill="#0074FF"/>
+        <rect x="161.98" y="194.38" width="32.4" height="32.4" fill="#0074FF"/>
+        <rect x="194.38" y="194.38" width="32.4" height="32.4" fill="#0074FF"/>
+      </svg>
+    </div>
+    <div>
+      <h1>Ayman Elmasry</h1>
+      <p><b>AEL</b> Orchestrator · Multi-Provider AI Workbench</p>
+    </div>
+  </div>
+
+  <div class="status-strip" id="statusStrip"></div>
+
+  <div class="presence">
+    <div class="avatars" id="avatars"></div>
+    <div class="solo-hint" id="soloHint"></div>
+    <button class="btn tiny" id="btnPeer" title="Spawn a simulated collaborator">+ demo peer</button>
+    <button class="btn tiny brand" id="btnAbout" title="About Ayman Elmasry">◈ about</button>
+  </div>
+</header>
+
+<main class="layout">
+
+  <!-- ============ LEFT: PROMPT + CONFIG ============ -->
+  <section class="panel" id="panel-prompt" data-panel="prompt">
+    <div class="panel-head">
+      <h2><span class="dot brand"></span>Prompt Composer</h2>
+      <div class="peer-chips" data-chips="prompt"></div>
+      <div class="spacer"></div>
+      <button class="btn tiny" id="btnDemoMode" title="Toggle demo mode (no API keys needed)">◈ demo</button>
+    </div>
+    <div class="panel-body">
+
+      <div class="subhead">Task Type</div>
+      <select id="taskType" class="full">
+        <option value="general">General Q&A</option>
+        <option value="code">Code Generation</option>
+        <option value="summarize">Summarization</option>
+        <option value="translate">Translation</option>
+        <option value="creative">Creative Writing</option>
+        <option value="analyze">Data Analysis</option>
+      </select>
+
+      <div class="subhead">Prompt</div>
+      <textarea id="promptSrc" spellcheck="false" rows="6"></textarea>
+
+      <div class="subhead">Type-Safe Contract</div>
+      <textarea id="contractSrc" spellcheck="false" rows="7"></textarea>
+      <div class="badge-row">
+        <span class="badge" id="contractBadge">compiled</span>
+        <button class="btn tiny" id="btnRecompile">↻ recompile</button>
+      </div>
+      <div class="diags compact" id="contractDiags"></div>
+
+      <div class="subhead">Run</div>
+      <div class="btn-group full">
+        <button class="btn primary wide" id="btnRunAll">⚡ Run on All Providers</button>
+      </div>
+      <div class="btn-group full">
+        <button class="btn brand wide" id="btnRouteAuto">◈ Auto-Route (Smart Router)</button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ CENTER: COMPARISON GRID ============ -->
+  <section class="panel" id="panel-compare" data-panel="compare">
+    <div class="panel-head">
+      <h2><span class="dot cyan"></span>Provider Comparison</h2>
+      <div class="peer-chips" data-chips="compare"></div>
+      <div class="spacer"></div>
+      <span class="badge" id="compareBadge">idle</span>
+      <button class="btn tiny" id="btnClearCompare">clear</button>
+    </div>
+    <div class="panel-body no-pad">
+      <div class="provider-grid" id="providerGrid"></div>
+    </div>
+  </section>
+
+  <!-- ============ RIGHT: ROUTER + COST + KEYS ============ -->
+  <div class="col-right">
+
+    <section class="panel" id="panel-router" data-panel="router">
+      <div class="panel-head">
+        <h2><span class="dot violet"></span>Smart Router</h2>
+        <div class="peer-chips" data-chips="router"></div>
+      </div>
+      <div class="panel-body">
+        <div class="field-row">
+          <label>Optimize for</label>
+          <select id="routerMode">
+            <option value="balanced">Balanced</option>
+            <option value="quality">Quality</option>
+            <option value="speed">Speed</option>
+            <option value="cost">Cost</option>
+          </select>
+        </div>
+        <div class="subhead">Active Rules</div>
+        <div class="rules-list" id="rulesList"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-cost" data-panel="cost">
+      <div class="panel-head">
+        <h2><span class="dot green"></span>Cost Dashboard</h2>
+        <div class="peer-chips" data-chips="cost"></div>
+        <div class="spacer"></div>
+        <button class="btn tiny" id="btnResetCost">reset</button>
+      </div>
+      <div class="panel-body">
+        <div class="cost-total" id="costTotal">$0.0000</div>
+        <div class="cost-sub">session total</div>
+        <div class="cost-bars" id="costBars"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-keys" data-panel="keys">
+      <div class="panel-head">
+        <h2><span class="dot amber"></span>API Keys</h2>
+        <div class="peer-chips" data-chips="keys"></div>
+      </div>
+      <div class="panel-body">
+        <div class="key-warning">
+          ⚠️ Keys are stored <b>locally in your browser only</b>. They are sent directly to the AI provider, never to any AEL server.
+        </div>
+        <div class="key-list" id="keyList"></div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ============ BOTTOM: LOGS ============ -->
+  <section class="panel" id="panel-logs" data-panel="logs">
+    <div class="panel-head">
+      <h2><span class="dot green"></span>Orchestration Log</h2>
+      <div class="peer-chips" data-chips="logs"></div>
+      <div class="spacer"></div>
+      <button class="btn tiny" id="btnClearLogs">clear</button>
+    </div>
+    <div class="log-stream" id="logStream"></div>
+  </section>
+
+</main>
+
+<!-- ============ ABOUT MODAL ============ -->
+<div class="modal" id="aboutModal" role="dialog" aria-modal="true" aria-label="About Ayman Elmasry">
+  <div class="modal-card">
+    <button class="modal-close" id="aboutClose" aria-label="Close">✕</button>
+
+    <div class="m-head">
+      <div class="m-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 226.77 226.77">
+          <path d="m97.19,48.59v16.2h-32.4v-16.2c0-8.94-7.25-16.2-16.2-16.2s-16.2,7.25-16.2,16.2v16.2H0v-16.2c0-5.68.98-11.13,2.76-16.2C9.44,13.52,27.44,0,48.59,0s39.16,13.52,45.83,32.4c1.79,5.07,2.76,10.52,2.76,16.2Z" fill="#ffffff"/>
+          <rect y="97.19" width="32.4" height="32.4" fill="#0074FF"/>
+          <rect x="64.79" y="97.19" width="32.4" height="32.4" fill="#0074FF"/>
+          <rect x="64.79" y="129.58" width="32.4" height="32.4" fill="#0074FF"/>
+          <rect y="129.58" width="32.4" height="32.4" fill="#0074FF"/>
+          <rect x="129.58" y="97.19" width="32.4" height="32.4" fill="#0074FF"/>
+          <rect x="161.98" y="129.58" width="32.4" height="32.4" fill="#0074FF"/>
+          <rect x="194.38" y="129.58" width="32.4" height="32.4" fill="#0074FF"/>
+          <rect x="129.58" y="129.58" width="32.4" height="32.4" fill="#0074FF"/>
+          <rect x="129.58" width="32.4" height="32.4" fill="#0074FF"/>
+          <rect x="161.98" width="32.4" height="32.4" fill="#0074FF"/>
+          <rect x="194.38" width="32.4" height="32.4" fill="#0074FF"/>
+          <rect x="129.58" y="32.4" width="32.4" height="32.4" fill="#0074FF"/>
+          <rect y="194.38" width="32.4" height="32.4" fill="#0074FF"/>
+          <rect x="32.4" y="194.38" width="32.4" height="32.4" fill="#0074FF"/>
+          <rect x="64.79" y="194.38" width="32.4" height="32.4" fill="#0074FF"/>
+          <rect x="97.19" y="194.38" width="32.4" height="32.4" fill="#0074FF"/>
+          <rect x="129.58" y="194.38" width="32.4" height="32.4" fill="#0074FF"/>
+          <rect x="161.98" y="194.38" width="32.4" height="32.4" fill="#0074FF"/>
+          <rect x="194.38" y="194.38" width="32.4" height="32.4" fill="#0074FF"/>
+        </svg>
+      </div>
+      <div>
+        <h2>Ayman Elmasry</h2>
+        <div class="m-title">Visionary · AI Orchestrator · Brand Designer<br>Founder @ AEL Digital Studio</div>
+        <div class="m-loc">Dubai · Egypt · Kuwait</div>
+      </div>
+    </div>
+
+    <div class="m-body">
+      <p>I define the vision behind digital products and orchestrate AI to bring that vision to life.</p>
+      <p>As the founder of <strong style="color:#e8f2ff">AEL Digital Studio</strong>, I design brand systems, AI-powered experiences, and digital platforms where strategy, design, and technology work as a unified system. My work focuses on building scalable frameworks and reusable systems rather than one-off deliverables.</p>
+      <p style="color:#7f93ab">Dubai · Egypt · Kuwait — I collaborate with clients worldwide to create distinctive brands, intelligent digital products, and long-term design systems that remain consistent, maintainable, and built for growth.</p>
+    </div>
+
+    <div class="m-divider"></div>
+
+    <div class="m-links">
+      <a class="m-link" href="https://www.aymanelmasry.com/" target="_blank" rel="noopener noreferrer">
+        <span class="ic">◈</span><span>www.aymanelmasry.com</span>
+      </a>
+      <a class="m-link" href="https://aymanelmasry.me/" target="_blank" rel="noopener noreferrer">
+        <span class="ic">◇</span><span>aymanelmasry.me</span>
+      </a>
+      <a class="m-link" href="mailto:info@aymanelmasry.com">
+        <span class="ic">@</span><span>info@aymanelmasry.com</span>
+      </a>
+      <a class="m-link" href="mailto:ayman@aymanelmasry.me">
+        <span class="ic">@</span><span>ayman@aymanelmasry.me</span>
+      </a>
+    </div>
+
+    <div class="m-credit">
+      <span>AEL ORCHESTRATOR · v1.0</span>
+      <span>© <span id="year"></span> Ayman Elmasry</span>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="src/ui/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Backups
+*.bak
+*.original.*
+
+# Logs
+*.log
+
+# Secrets
+.env
+.env.local
+.env.*.local
