@@ -36,19 +36,30 @@ function parseField(line, ln, diags) {
   if (!KNOWN_TYPES.includes(base)) diags.push({ line: ln, sev: "error", msg: `unknown type "${base}"` });
 
   const field = { name: fname, type: base, array: !!arr, optional: !!opt, decos: [], def: undefined, line: ln };
+
   let decoPart = rest;
   const eq = rest.indexOf("=");
+
   if (eq >= 0) {
-    decoPart = rest.slice(0, eq);
-    const raw = rest.slice(eq + 1).trim();
-    try { field.def = JSON.parse(raw); }
-    catch (_) {
-      if (/^-?\d+(\.\d+)?$/.test(raw)) field.def = parseFloat(raw);
-      else if (raw === "true" || raw === "false") field.def = raw === "true";
-      else if (/^".*"$/.test(raw)) field.def = raw.slice(1, -1);
-      else diags.push({ line: ln, sev: "error", msg: `invalid default "${raw}"` });
+    const beforeEq = rest.slice(0, eq).trim();
+    const afterEq  = rest.slice(eq + 1).trim();
+
+    const atIdx = afterEq.indexOf("@");
+    const valueStr = atIdx >= 0 ? afterEq.slice(0, atIdx).trim() : afterEq;
+    const decoStr  = atIdx >= 0 ? afterEq.slice(atIdx) : "";
+
+    decoPart = (beforeEq + " " + decoStr).trim();
+
+    try {
+      field.def = JSON.parse(valueStr);
+    } catch (_) {
+      if (/^-?\d+(\.\d+)?$/.test(valueStr)) field.def = parseFloat(valueStr);
+      else if (valueStr === "true" || valueStr === "false") field.def = valueStr === "true";
+      else if (/^".*"$/.test(valueStr)) field.def = valueStr.slice(1, -1);
+      else diags.push({ line: ln, sev: "error", msg: `invalid default "${valueStr}"` });
     }
   }
+
   const re = /@(\w+)(?:\(([^)]*)\))?/g;
   let dm;
   while ((dm = re.exec(decoPart))) {
