@@ -1,5 +1,6 @@
 /* =========================================================================
    Contract DSL Parser
+   Supports:  enum(a,b,c) sugar · = default @decorator · bare identifiers
    ========================================================================= */
 
 const KNOWN_TYPES = ["string", "int", "float", "bool", "any", "json"];
@@ -33,9 +34,41 @@ function parseField(line, ln, diags) {
   const m = line.match(/^([A-Za-z_]\w*)\s*:\s*([A-Za-z_]\w*)\s*(\[\])?\s*(\?)?\s*(.*)$/);
   if (!m) { diags.push({ line: ln, sev: "error", msg: `cannot parse field: "${line}"` }); return null; }
   const [, fname, base, arr, opt, rest] = m;
-  if (!KNOWN_TYPES.includes(base)) diags.push({ line: ln, sev: "error", msg: `unknown type "${base}"` });
 
-  const field = { name: fname, type: base, array: !!arr, optional: !!opt, decos: [], def: undefined, line: ln };
+  let actualType = base;
+  const injectedDecos = [];
+
+  // enum(a, b, c)  →  string @enum(a, b, c)
+  if (base === "enum") {
+    const em = rest.match(/^\(([^)]*)\)\s*(.*)$/);
+    if (em) {
+      const values = em[1].split(",").map(s => s.trim()).filter(Boolean);
+      injectedDecos.push({ name: "enum", args: values });
+      actualType = "string";
+      return finishParseField(fname, actualType, !!arr, !!opt, em[2].trim(), injectedDecos, ln, diags);
+    } else {
+      diags.push({ line: ln, sev: "error", msg: `enum type requires parentheses: enum(a,b,c)` });
+      return null;
+    }
+  }
+
+  if (!KNOWN_TYPES.includes(base)) {
+    diags.push({ line: ln, sev: "error", msg: `unknown type "${base}" (expected ${KNOWN_TYPES.join(" | ")})` });
+  }
+
+  return finishParseField(fname, actualType, !!arr, !!opt, rest, injectedDecos, ln, diags);
+}
+
+function finishParseField(fname, base, isArray, isOptional, rest, injectedDecos, ln, diags) {
+  const field = {
+    name: fname,
+    type: base,
+    array: isArray,
+    optional: isOptional,
+    decos: [...injectedDecos],
+    def: undefined,
+    line: ln
+  };
 
   let decoPart = rest;
   const eq = rest.indexOf("=");
@@ -44,19 +77,27 @@ function parseField(line, ln, diags) {
     const beforeEq = rest.slice(0, eq).trim();
     const afterEq  = rest.slice(eq + 1).trim();
 
+    // Split default value from trailing decorators at first '@'
     const atIdx = afterEq.indexOf("@");
     const valueStr = atIdx >= 0 ? afterEq.slice(0, atIdx).trim() : afterEq;
     const decoStr  = atIdx >= 0 ? afterEq.slice(atIdx) : "";
 
     decoPart = (beforeEq + " " + decoStr).trim();
 
-    try {
-      field.def = JSON.parse(valueStr);
-    } catch (_) {
-      if (/^-?\d+(\.\d+)?$/.test(valueStr)) field.def = parseFloat(valueStr);
-      else if (valueStr === "true" || valueStr === "false") field.def = valueStr === "true";
-      else if (/^".*"$/.test(valueStr)) field.def = valueStr.slice(1, -1);
-      else diags.push({ line: ln, sev: "error", msg: `invalid default "${valueStr}"` });
+    if (/^-?\d+(\.\d+)?$/.test(valueStr)) {
+      field.def = parseFloat(valueStr);
+    } else if (valueStr === "true" || valueStr === "false") {
+      field.def = valueStr === "true";
+    } else if (valueStr === "null") {
+      field.def = null;
+    } else if (/^".*"$/.test(valueStr)) {
+      field.def = valueStr.slice(1, -1);
+    } else if (/^[A-Za-z_]\w*$/.test(valueStr)) {
+      // Bare identifier (typical for enum defaults) → treat as string
+      field.def = valueStr;
+    } else {
+      try { field.def = JSON.parse(valueStr); }
+      catch (_) { diags.push({ line: ln, sev: "error", msg: `invalid default "${valueStr}"` }); }
     }
   }
 
@@ -66,5 +107,6 @@ function parseField(line, ln, diags) {
     const args = dm[2] ? dm[2].split(",").map(s => s.trim()).filter(Boolean) : [];
     field.decos.push({ name: dm[1], args });
   }
+
   return field;
 }
