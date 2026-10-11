@@ -240,7 +240,7 @@ MIT License — see [LICENSE](LICENSE).
 
 [![Website](https://img.shields.io/badge/Website-aymanelmasry.com-0074FF?style=for-the-badge)](https://www.aymanelmasry.com/)
 [![Portfolio](https://img.shields.io/badge/Portfolio-aymanelmasry.me-0074FF?style=for-the-badge)](https://aymanelmasry.me/)
-[![Email](https://img.shields.io/badge/Email-info@aymanelmasry.com-0074FF?style=for-the-badge)](mailto:info@aymanelmasry.com)
+[![Email](https://img.shields.io/badge/Email-ayman@aymanelmasry.me-0074FF?style=for-the-badge)](mailto:ayman@aymanelmasry.me)
 
 </div>
 
